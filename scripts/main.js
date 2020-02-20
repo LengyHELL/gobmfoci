@@ -20,7 +20,7 @@ var board = {
 board.set();
 
 var game = {
-  ballPos : { x : 0.0, y : 0.0 },
+  ballPos : { x : 50.0, y : 50.0 },
   ballForce : { x : 0.0, y : 0.0},
   ballPic : new Image(0, 0),
   set : function() {
@@ -43,20 +43,37 @@ function end() {
 }
 
 function update() {
+  resist = 0.95;
+  power = 0.1;
+
   if (board.mousePos.but == 0) { board.clickLock = false; }
   else if ((board.mousePos.but > 0) && !board.clickLock) {
     board.clickLock = true;
 
     if (board.mousePos.but == 1) {
-      game.ballForce.x += (board.mousePos.x - game.ballPos.x) / 75;
-      game.ballForce.y += (board.mousePos.y - game.ballPos.y) / 75;
+      game.ballForce.x += (board.mousePos.x - game.ballPos.x) * power;
+      game.ballForce.y += (board.mousePos.y - game.ballPos.y) * power;
     }
+  }
+
+  if ((game.ballPos.x + (31 / 2)) > board.canvas.width) {
+    if (game.ballForce.x > 0) { game.ballForce.x *= -1; }
+  }
+  if ((game.ballPos.x - (31 / 2)) < 0) {
+    if (game.ballForce.x < 0) { game.ballForce.x *= -1; }
+  }
+
+  if ((game.ballPos.y + (31 / 2)) > board.canvas.height) {
+    if (game.ballForce.y > 0) { game.ballForce.y *= -1; }
+  }
+  if ((game.ballPos.y - (31 / 2)) < 0) {
+    if (game.ballForce.y < 0) { game.ballForce.y *= -1; }
   }
 
   game.ballPos.x += game.ballForce.x;
   game.ballPos.y += game.ballForce.y;
-  game.ballForce.x *= 0.95;
-  game.ballForce.y *= 0.95;
+  game.ballForce.x *= resist;
+  game.ballForce.y *= resist;
 
   draw();
 }
