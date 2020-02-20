@@ -24,7 +24,7 @@ var game = {
   ballForce : { x : 0.0, y : 0.0},
   ballPic : new Image(0, 0),
   set : function() {
-    this.ballPic.src = "/gf/scripts/ball.png?" + new Date().getTime();
+    this.ballPic.src = "/gombfoci/scripts/ball.png?" + new Date().getTime();
     this.frames = 0;
   }
 };
