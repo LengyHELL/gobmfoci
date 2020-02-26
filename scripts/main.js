@@ -17,18 +17,59 @@ var board = {
   }
 };
 
-board.set();
-
 var game = {
-  ballPos : { x : 50.0, y : 50.0 },
-  ballForce : { x : 0.0, y : 0.0},
+  balls : [],
   ballPic : new Image(0, 0),
   set : function() {
     this.ballPic.src = "/gombfoci/scripts/ball.png?" + new Date().getTime();
     this.frames = 0;
+    this.balls.push(new Ball(50, 50));
+    this.balls.push(new Ball(100, 100));
+    this.balls.push(new Ball(200, 200));
   }
 };
 
+
+
+function Vector(x, y) {
+  this.x = x;
+  this.y = y;
+}
+
+function magn(vec) {
+  return Math.sqrt((vec.x**2) + (vec.y**2));
+}
+
+function proj(a, b) {//b -re
+  mlt = ((a.x * b.x) + (a.y * b.y)) / magn(b)**2;
+  return new Vector(b.x * mlt, b.y * mlt);
+}
+
+function getdeg(vec1, vec2) {
+  temp = ((vec1.x * vec2.x + vec1.y * vec2.y) / (magn(vec1)) / magn(vec2));
+  return (Math.acos(temp) / Math.PI) * 180;
+}
+
+
+
+function Ball(x, y) {
+  this.pos = new Vector(x, y);
+  this.force = new Vector(0, 0);
+}
+
+function testcol(ball1, ball2) {
+  dv = new Vector(ball2.pos.x - ball1.pos.x, ball2.pos.y - ball1.pos.y);
+  if (magn(dv) < 31) {
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+
+
+board.set();
 var interval = undefined;
 
 function start() {
@@ -51,29 +92,51 @@ function update() {
     board.clickLock = true;
 
     if (board.mousePos.but == 1) {
-      game.ballForce.x += (board.mousePos.x - game.ballPos.x) * power;
-      game.ballForce.y += (board.mousePos.y - game.ballPos.y) * power;
+      game.balls[0].force.x += (board.mousePos.x - game.balls[0].pos.x) * power;
+      game.balls[0].force.y += (board.mousePos.y - game.balls[0].pos.y) * power;
+    }
+    if (board.mousePos.but == 2) {
+      game.balls[1].force.x += (board.mousePos.x - game.balls[1].pos.x) * power;
+      game.balls[1].force.y += (board.mousePos.y - game.balls[1].pos.y) * power;
     }
   }
 
-  if ((game.ballPos.x + (31 / 2)) > board.canvas.width) {
-    if (game.ballForce.x > 0) { game.ballForce.x *= -1; }
-  }
-  if ((game.ballPos.x - (31 / 2)) < 0) {
-    if (game.ballForce.x < 0) { game.ballForce.x *= -1; }
-  }
+  for (var i = 0; i < game.balls.length; i++) {
+    if ((game.balls[i].pos.x + (31 / 2)) > board.canvas.width) {
+      if (game.balls[i].force.x > 0) { game.balls[i].force.x *= -1; }
+    }
+    if ((game.balls[i].pos.x - (31 / 2)) < 0) {
+      if (game.balls[i].force.x < 0) { game.balls[i].force.x *= -1; }
+    }
 
-  if ((game.ballPos.y + (31 / 2)) > board.canvas.height) {
-    if (game.ballForce.y > 0) { game.ballForce.y *= -1; }
-  }
-  if ((game.ballPos.y - (31 / 2)) < 0) {
-    if (game.ballForce.y < 0) { game.ballForce.y *= -1; }
-  }
+    if ((game.balls[i].pos.y + (31 / 2)) > board.canvas.height) {
+      if (game.balls[i].force.y > 0) { game.balls[i].force.y *= -1; }
+    }
+    if ((game.balls[i].pos.y - (31 / 2)) < 0) {
+      if (game.balls[i].force.y < 0) { game.balls[i].force.y *= -1; }
+    }
 
-  game.ballPos.x += game.ballForce.x;
-  game.ballPos.y += game.ballForce.y;
-  game.ballForce.x *= resist;
-  game.ballForce.y *= resist;
+    for (var j = 0; j < game.balls.length; j++) {
+      if (j != i) {
+        if (testcol(game.balls[i], game.balls[j])) {//vegp - kezdop
+          var to = new Vector(game.balls[j].pos.x - game.balls[i].pos.x, game.balls[j].pos.y - game.balls[i].pos.y);
+
+          if (getdeg(to, game.balls[i].force) <= 90) {
+            tforce = proj(game.balls[i].force, to);
+            game.balls[i].force.x -= tforce.x;
+            game.balls[i].force.y -= tforce.y;
+            game.balls[j].force.x += tforce.x;
+            game.balls[j].force.y += tforce.y;
+          }
+        }
+      }
+    }
+
+    game.balls[i].pos.x += game.balls[i].force.x;
+    game.balls[i].pos.y += game.balls[i].force.y;
+    game.balls[i].force.x *= resist;
+    game.balls[i].force.y *= resist;
+  }
 
   draw();
 }
@@ -81,7 +144,15 @@ function update() {
 function draw() {
   board.context.clearRect(0, 0, board.canvas.width, board.canvas.height);
   ctx = board.context;
-  ctx.drawImage(game.ballPic, game.ballPos.x - (31 / 2), game.ballPos.y - (31 / 2), 31, 31);
+  for (var i = 0; i < game.balls.length; i++) {
+    if (i == 0) { ctx.strokeStyle = "red"; }
+    else if (i == 1) { ctx.strokeStyle = "blue"; }
+    else { ctx.strokeStyle = "black"; }
+    ctx.beginPath();
+    ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, 31 / 2, 0, 2 * Math.PI);
+    ctx.stroke();
+    //ctx.drawImage(game.ballPic, game.balls[i].pos.x - (31 / 2), game.balls[i].pos.y - (31 / 2), 31, 31);
+  }
 }
 
 function getMousePos(evt) {
