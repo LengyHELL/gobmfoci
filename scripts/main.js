@@ -19,13 +19,13 @@ var board = {
 
 var game = {
   balls : [],
-  ballPic : new Image(0, 0),
+  //ballPic : new Image(0, 0),
   set : function() {
-    this.ballPic.src = "/gombfoci/scripts/ball.png?" + new Date().getTime();
+    //this.ballPic.src = "/gombfoci/scripts/ball.png?" + new Date().getTime();
     this.frames = 0;
-    this.balls.push(new Ball(50, 50));
-    this.balls.push(new Ball(100, 100));
-    this.balls.push(new Ball(200, 200));
+    this.balls.push(new Ball(50, 50, 15, 5));
+    this.balls.push(new Ball(100, 100, 15, 5));
+    this.balls.push(new Ball(200, 200, 15, 5));
   }
 };
 
@@ -52,19 +52,25 @@ function getdeg(vec1, vec2) {
 
 
 
-function Ball(x, y) {
+function Ball(x, y, r, m) {
   this.pos = new Vector(x, y);
   this.force = new Vector(0, 0);
+  this.radius = r;
+  this.mass = m;
 }
 
 function testcol(ball1, ball2) {
   dv = new Vector(ball2.pos.x - ball1.pos.x, ball2.pos.y - ball1.pos.y);
-  if (magn(dv) < 31) {
+  if (magn(dv) < (ball1.radius + ball2.radius)) {
     return true;
   }
   else {
     return false;
   }
+}
+
+function area(radius) {
+  return radius * radius * Math.PI;
 }
 
 
@@ -84,7 +90,7 @@ function end() {
 }
 
 function update() {
-  resist = 0.95;
+  resist = 0.90;
   power = 0.1;
 
   if (board.mousePos.but == 0) { board.clickLock = false; }
@@ -102,17 +108,18 @@ function update() {
   }
 
   for (var i = 0; i < game.balls.length; i++) {
-    if ((game.balls[i].pos.x + (31 / 2)) > board.canvas.width) {
+
+    if ((game.balls[i].pos.x + game.balls[i].radius) > board.canvas.width) {
       if (game.balls[i].force.x > 0) { game.balls[i].force.x *= -1; }
     }
-    if ((game.balls[i].pos.x - (31 / 2)) < 0) {
+    if ((game.balls[i].pos.x - game.balls[i].radius) < 0) {
       if (game.balls[i].force.x < 0) { game.balls[i].force.x *= -1; }
     }
 
-    if ((game.balls[i].pos.y + (31 / 2)) > board.canvas.height) {
+    if ((game.balls[i].pos.y + game.balls[i].radius) > board.canvas.height) {
       if (game.balls[i].force.y > 0) { game.balls[i].force.y *= -1; }
     }
-    if ((game.balls[i].pos.y - (31 / 2)) < 0) {
+    if ((game.balls[i].pos.y - game.balls[i].radius) < 0) {
       if (game.balls[i].force.y < 0) { game.balls[i].force.y *= -1; }
     }
 
@@ -123,10 +130,11 @@ function update() {
 
           if (getdeg(to, game.balls[i].force) <= 90) {
             tforce = proj(game.balls[i].force, to);
-            game.balls[i].force.x -= tforce.x;
-            game.balls[i].force.y -= tforce.y;
-            game.balls[j].force.x += tforce.x;
-            game.balls[j].force.y += tforce.y;
+            tmass = game.balls[i].mass + game.balls[j].mass;
+            game.balls[i].force.x -= ((tforce.x * 2) / tmass) * game.balls[j].mass;
+            game.balls[i].force.y -= ((tforce.y * 2) / tmass) * game.balls[j].mass;
+            game.balls[j].force.x += ((tforce.x * 2) / tmass) * game.balls[i].mass;
+            game.balls[j].force.y += ((tforce.y * 2) / tmass) * game.balls[i].mass;
           }
         }
       }
@@ -149,7 +157,7 @@ function draw() {
     else if (i == 1) { ctx.strokeStyle = "blue"; }
     else { ctx.strokeStyle = "black"; }
     ctx.beginPath();
-    ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, 31 / 2, 0, 2 * Math.PI);
+    ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.balls[i].radius, 0, 2 * Math.PI);
     ctx.stroke();
     //ctx.drawImage(game.ballPic, game.balls[i].pos.x - (31 / 2), game.balls[i].pos.y - (31 / 2), 31, 31);
   }
