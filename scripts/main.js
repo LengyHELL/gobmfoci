@@ -34,18 +34,16 @@ function Rect(x, y, w, h) {
 }
 
 function overlap(s1, e1, s2, e2) {
-  let min = e1;
-  if (e2 < e1) { min = e2; }
+  if ((s1 <= e2) && (s2 <= e1)) {
+    let max = s1;
+    if (s2 > s1) { max = s2; }
 
-  let max = s1;
-  if (s2 > s1) { max = s2; }
+    let min = e1;
+    if (e2 < e1) { min = e2; }
 
-  let ret = min - max;
-
-  if (ret > 0) { return ret; }
+    return Math.abs(min - max);
+  }
   else { return 0; }
-
-  return (s1 >= s2 && s1 <= e2) || (s2 >= s1 && s2 <= e1);
 }
 
 function ballToBall(ball1, ball2) {
@@ -68,8 +66,25 @@ function ballToRect(ball, rect) {
   let ctoy = proj(new Vector(ball.pos.x, ball.pos.y), yaxis);
   let ctox = proj(new Vector(ball.pos.x, ball.pos.y), xaxis);
 
-  let oly = overlap(magn(rtoy), magn(rtoy) + rect.height, magn(ctoy) - ball.radius, magn(ctoy) + ball.radius);
-  let olx = overlap(magn(rtox), magn(rtox) + rect.width, magn(ctox) - ball.radius, magn(ctox) + ball.radius);
+  let disty1 = (rtoy.y + rect.height) - ctoy.y;
+  let disty2 = rtoy.y - ctoy.y;
+  let disty = undefined;
+
+
+  disty = Math.abs((rtoy.y + rect.height) - ctoy.y);
+  if (Math.abs(rtoy.y - ctoy.y) < disty) { disty = rtoy.y - ctoy.y; }
+  if ((disty >= ball.radius) || (disty < 0)) { disty = 0; }
+
+  distx = Math.abs((rtox.x + rect.width) - ctox.x);
+  if (Math.abs(rtox.x - ctox.x) < distx) { distx = rtox.x - ctox.x; }
+  if ((distx >= ball.radius) || (distx < 0)) { distx = 0; }
+
+  //use offset on opposite axis
+  let ofsy = Math.sqrt(ball.radius**2 - distx**2);
+  let ofsx = Math.sqrt(ball.radius**2 - disty**2);
+
+  let oly = overlap(magn(rtoy), magn(rtoy) + rect.height, magn(ctoy) - ofsy, magn(ctoy) + ofsy);
+  let olx = overlap(magn(rtox), magn(rtox) + rect.width, magn(ctox) - ofsx, magn(ctox) + ofsx);
 
   return new Vector(olx, oly);
 }
@@ -151,7 +166,7 @@ function isMoving() {
 function updateGame() {
   let resist = 0.01;
 
-  game.power += board.mousePos.whl * 1000;
+  game.power += board.mousePos.whl * 100;
   if (game.power < 0) { game.power = 0; }
   if (game.power > 15000) { game.power = 15000; }
   board.mousePos.whl = 0;
@@ -201,6 +216,8 @@ function updateGame() {
       if (game.balls[i].force.y < 0) { game.balls[i].force.y *= -1; }
     }
 
+    let fx = 0;
+    let fy = 0;
     for (let j = 0; j < game.rects.length; j++) {
       let temp = ballToRect(game.balls[i], game.rects[j]);
       if (temp.x > 0 && temp.y > 0) {
@@ -211,10 +228,13 @@ function updateGame() {
         else {
           to = new Vector(0, temp.y);
         }
+
         let tforce = proj(game.balls[i].force, to);
-        game.balls[i].force.x -= tforce.x * 2;
-        game.balls[i].force.y -= tforce.y * 2;
+        fx -= tforce.x * 2;
+        fy -= tforce.y * 2;
       }
+      game.balls[i].force.x += fx;
+      game.balls[i].force.y += fy;
     }
 
     for (let j = 0; j < game.balls.length; j++) {
