@@ -27,12 +27,24 @@ function Ball(x, y, r, m, t) {
   this.type = t;
 }
 
-function Line(xs, ys, xe, ye) {
-  this.start = new Vector(xs, ys);
-  this.end = new Vector(xe, ye);
+function Rect(x, y, w, h) {
+  this.pos = new Vector(x, y);
+  this.width = w;
+  this.height = h;
 }
 
-function isOverlap(s1, e1, s2, e2) {
+function overlap(s1, e1, s2, e2) {
+  let min = e1;
+  if (e2 < e1) { min = e2; }
+
+  let max = s1;
+  if (s2 > s1) { max = s2; }
+
+  let ret = min - max;
+
+  if (ret > 0) { return ret; }
+  else { return 0; }
+
   return (s1 >= s2 && s1 <= e2) || (s2 >= s1 && s2 <= e1);
 }
 
@@ -46,29 +58,20 @@ function ballToBall(ball1, ball2) {
   }
 }
 
-function ballToLine(ball, line) {
-  let temp = (line.end.y - line.start.y) * ball.pos.x;
-  temp -= (line.end.x - line.start.x) * ball.pos.y;
-  temp += line.end.x * line.start.y;
-  temp -= line.end.y * line.start.x;
+function ballToRect(ball, rect) {
+  let xaxis = new Vector(1, 0);
+  let yaxis = new Vector(0, 1);
 
-  if (temp < 0) {
-    temp *= -1;
-  }
+  let rtoy = proj(new Vector(rect.pos.x, rect.pos.y), yaxis);
+  let rtox = proj(new Vector(rect.pos.x, rect.pos.y), xaxis);
 
-  let div = Math.sqrt((line.end.y - line.start.y)**2 + (line.end.x - line.start.x)**2);
-  let dist = temp / div;
-  let coll1 = dist < ball.radius;
+  let ctoy = proj(new Vector(ball.pos.x, ball.pos.y), yaxis);
+  let ctox = proj(new Vector(ball.pos.x, ball.pos.y), xaxis);
 
-  let tempv1 = new Vector(line.end.x - line.start.x, line.end.y - line.start.y);
-  let tempv2 = proj(new Vector(ball.pos.x - line.start.x, ball.pos.y - line.start.y), tempv1);
-  let coll2 = false;
-  if (getdeg(tempv1, tempv2) == 0) {
-    if (isOverlap(0, magn(tempv1), magn(tempv2) - ball.radius, magn(tempv2) + ball.radius)) {
-      coll2 = true;
-    }
-  }
-  return coll1 && coll2;
+  let oly = overlap(magn(rtoy), magn(rtoy) + rect.height, magn(ctoy) - ball.radius, magn(ctoy) + ball.radius);
+  let olx = overlap(magn(rtox), magn(rtox) + rect.width, magn(ctox) - ball.radius, magn(ctox) + ball.radius);
+
+  return new Vector(olx, oly);
 }
 
 
@@ -121,7 +124,7 @@ function onWheel(evt) {
 
 var game = {
   balls : [],
-  lines : [],
+  rects : [],
   selected : -1,
   power : 1000,
   //ballPic : new Image(0, 0),
@@ -131,10 +134,7 @@ var game = {
     this.balls.push(new Ball(50, 50, 10, 4, 0));
     this.balls.push(new Ball(100, 100, 15, 6, 1));
     this.balls.push(new Ball(200, 200, 15, 6, 2));
-    this.lines.push(new Line(500, 100, 500, 200));
-    this.lines.push(new Line(500, 200, 400, 200));
-    this.lines.push(new Line(400, 200, 400, 100));
-    this.lines.push(new Line(400, 100, 500, 100));
+    this.rects.push(new Rect(500, 100, 100, 100));
   },
 };
 
@@ -201,22 +201,16 @@ function updateGame() {
       if (game.balls[i].force.y < 0) { game.balls[i].force.y *= -1; }
     }
 
-    for (let j = 0; j < game.lines.length; j++) {
-      if (ballToLine(game.balls[i], game.lines[j])) {
+    for (let j = 0; j < game.rects.length; j++) {
+      let temp = ballToRect(game.balls[i], game.rects[j]);
+      if (temp.x > 0 && temp.y > 0) {
         let to = undefined;
-        let svec = new Vector(game.lines[j].start.x - game.balls[i].pos.x, game.lines[j].start.y - game.balls[i].pos.y);
-        let evec = new Vector(game.lines[j].end.x - game.balls[i].pos.x, game.lines[j].end.y - game.balls[i].pos.y);
-
-        if ((magn(svec) < game.balls[i].radius) && (getdeg(svec, game.balls[i].force) <= 90)) {
-          to = svec;
-        }
-        else if ((magn(evec) < game.balls[i].radius) && (getdeg(evec, game.balls[i].force) <= 90)) {
-          to = evec;
+        if (temp.x < temp.y) {
+          to = new Vector(temp.x, 0);
         }
         else {
-          to = new Vector(game.lines[j].start.y - game.lines[j].end.y, -1 * (game.lines[j].start.x - game.lines[j].end.x));
+          to = new Vector(0, temp.y);
         }
-
         let tforce = proj(game.balls[i].force, to);
         game.balls[i].force.x -= tforce.x * 2;
         game.balls[i].force.y -= tforce.y * 2;
@@ -251,10 +245,9 @@ function drawGame() {
   board.context.clearRect(0, 0, board.canvas.width, board.canvas.height);
   let ctx = board.context;
 
-  for (let i = 0; i < game.lines.length; i++) {
+  for (let i = 0; i < game.rects.length; i++) {
     ctx.beginPath();
-    ctx.moveTo(game.lines[i].start.x, game.lines[i].start.y);
-    ctx.lineTo(game.lines[i].end.x, game.lines[i].end.y);
+    ctx.rect(game.rects[i].pos.x, game.rects[i].pos.y, game.rects[i].width, game.rects[i].height)
     ctx.strokeStyle = "black";
     ctx.stroke();
   }
