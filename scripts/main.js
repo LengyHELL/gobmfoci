@@ -12,6 +12,11 @@ function proj(a, b) {//b -re
   return new Vector(b.x * mlt, b.y * mlt);
 }
 
+function unit(vec) {
+  let m = magn(vec);
+  return new Vector(vec.x / m, vec.y / m);
+}
+
 function getdeg(vec1, vec2) {
   let temp = ((vec1.x * vec2.x + vec1.y * vec2.y) / (magn(vec1)) / magn(vec2));
   return (Math.acos(temp) / Math.PI) * 180;
@@ -57,36 +62,70 @@ function ballToBall(ball1, ball2) {
 }
 
 function ballToRect(ball, rect) {
-  let xaxis = new Vector(1, 0);
-  let yaxis = new Vector(0, 1);
+  let p = [];
+  p.push(new Vector(rect.pos.x, rect.pos.y));
+  p.push(new Vector(rect.pos.x, rect.pos.y + rect.height));
+  p.push(new Vector(rect.pos.x + rect.width, rect.pos.y));
+  p.push(new Vector(rect.pos.x + rect.width, rect.pos.y + rect.height));
 
-  let rtoy = proj(new Vector(rect.pos.x, rect.pos.y), yaxis);
-  let rtox = proj(new Vector(rect.pos.x, rect.pos.y), xaxis);
+  let axes = [];
+  for (let i = 0; i < p.length; i++) {
+    axes.push(new Vector(ball.pos.x - p[i].x, ball.pos.y - p[i].y));
+  }
 
-  let ctoy = proj(new Vector(ball.pos.x, ball.pos.y), yaxis);
-  let ctox = proj(new Vector(ball.pos.x, ball.pos.y), xaxis);
+  let dir = undefined;
 
-  let disty1 = (rtoy.y + rect.height) - ctoy.y;
-  let disty2 = rtoy.y - ctoy.y;
-  let disty = undefined;
+  let axis = axes[0];
+  let min = magn(axes[0]);
+  let near = p[0];
+  for (let i = 1; i < axes.length; i++) {
+    if (magn(axes[i]) < min) {
+      min = magn(axes[i]);
+      axis = axes[i];
+      near = p[i];
+    }
+  }
 
+  let xaxis = new Vector(ball.pos.x - near.x, 0);
+  let yaxis = new Vector(0, ball.pos.y - near.y);
 
-  disty = Math.abs((rtoy.y + rect.height) - ctoy.y);
-  if (Math.abs(rtoy.y - ctoy.y) < disty) { disty = rtoy.y - ctoy.y; }
-  if ((disty >= ball.radius) || (disty < 0)) { disty = 0; }
+  let bval = magn(proj(ball.pos, axis));
+  if (getdeg(ball.pos, axis) > 90) { bval *= -1; }
 
-  distx = Math.abs((rtox.x + rect.width) - ctox.x);
-  if (Math.abs(rtox.x - ctox.x) < distx) { distx = rtox.x - ctox.x; }
-  if ((distx >= ball.radius) || (distx < 0)) { distx = 0; }
+  let pr = [];
+  for (let i = 0; i < p.length; i++) {
+    let tp = magn(proj(p[i], axis));
+    if (getdeg(p[i], axis) > 90) { tp *= -1; }
+    pr.push(tp);
+  }
 
-  //use offset on opposite axis
-  let ofsy = Math.sqrt(ball.radius**2 - distx**2);
-  let ofsx = Math.sqrt(ball.radius**2 - disty**2);
+  let rmin = pr[0];
+  let rmax = pr[0];
 
-  let oly = overlap(magn(rtoy), magn(rtoy) + rect.height, magn(ctoy) - ofsy, magn(ctoy) + ofsy);
-  let olx = overlap(magn(rtox), magn(rtox) + rect.width, magn(ctox) - ofsx, magn(ctox) + ofsx);
+  for (let i = 1; i < pr.length; i++) {
+    if (pr[i] < rmin) { rmin = pr[i]; }
+    if (pr[i] > rmax) { rmax = pr[i]; }
+  }
 
-  return new Vector(olx, oly);
+  let ol = [];
+
+  ol.push(overlap(bval - ball.radius, bval + ball.radius, rmin, rmax));
+  ol.push(overlap(rect.pos.y, rect.pos.y + rect.height, ball.pos.y - ball.radius, ball.pos.y + ball.radius));
+  ol.push(overlap(rect.pos.x, rect.pos.x + rect.width, ball.pos.x - ball.radius, ball.pos.x + ball.radius));
+
+  if ((ol[0] > 0) && (ol[1] > 0) && (ol[2] > 0)) {
+    let sh = 0;
+    for (let i = 1; i < ol.length; i++) {
+      if (ol[i] < ol[sh]) { sh = i; }
+    }
+    let ret = undefined;
+    let corr = 1.001;
+    if (sh == 0) { ret = unit(axis); }
+    if (sh == 1) { ret = unit(yaxis); }
+    if (sh == 2) { ret = unit(xaxis); }
+    return new Vector(ret.x * ol[sh] * corr, ret.y * ol[sh] * corr);
+  }
+  else { return new Vector(0, 0); }
 }
 
 
@@ -146,10 +185,23 @@ var game = {
   set : function(p) {
     //this.ballPic.src = "/gombfoci/scripts/ball.png?" + new Date().getTime();
     this.frames = 0;
-    this.balls.push(new Ball(50, 50, 10, 4, 0));
-    this.balls.push(new Ball(100, 100, 15, 6, 1));
-    this.balls.push(new Ball(200, 200, 15, 6, 2));
-    this.rects.push(new Rect(500, 100, 100, 100));
+    this.balls.push(new Ball(600, 250, 10, 4, 0));
+    this.balls.push(new Ball(400, 250, 15, 6, 1));
+    this.balls.push(new Ball(800, 250, 15, 6, 2));
+
+    this.rects.push(new Rect(105, 0, 990, 5));
+    this.rects.push(new Rect(100, 0, 5, 150));
+    this.rects.push(new Rect(100, 350, 5, 150));
+    this.rects.push(new Rect(0, 150, 5, 200));
+    this.rects.push(new Rect(0, 145, 100, 5));
+    this.rects.push(new Rect(0, 350, 100, 5));
+
+    this.rects.push(new Rect(105, 495, 990, 5));
+    this.rects.push(new Rect(1095, 0, 5, 150));
+    this.rects.push(new Rect(1095, 350, 5, 150));
+    this.rects.push(new Rect(1195, 150, 5, 200));
+    this.rects.push(new Rect(1100, 145, 100, 5));
+    this.rects.push(new Rect(1100, 350, 100, 5));
   },
 };
 
@@ -202,39 +254,17 @@ function updateGame() {
 
   for (let i = 0; i < game.balls.length; i++) {
 
-    if ((game.balls[i].pos.x + game.balls[i].radius) > board.canvas.width) {
-      if (game.balls[i].force.x > 0) { game.balls[i].force.x *= -1; }
-    }
-    if ((game.balls[i].pos.x - game.balls[i].radius) < 0) {
-      if (game.balls[i].force.x < 0) { game.balls[i].force.x *= -1; }
-    }
 
-    if ((game.balls[i].pos.y + game.balls[i].radius) > board.canvas.height) {
-      if (game.balls[i].force.y > 0) { game.balls[i].force.y *= -1; }
-    }
-    if ((game.balls[i].pos.y - game.balls[i].radius) < 0) {
-      if (game.balls[i].force.y < 0) { game.balls[i].force.y *= -1; }
-    }
 
-    let fx = 0;
-    let fy = 0;
     for (let j = 0; j < game.rects.length; j++) {
       let temp = ballToRect(game.balls[i], game.rects[j]);
-      if (temp.x > 0 && temp.y > 0) {
-        let to = undefined;
-        if (temp.x < temp.y) {
-          to = new Vector(temp.x, 0);
-        }
-        else {
-          to = new Vector(0, temp.y);
-        }
-
-        let tforce = proj(game.balls[i].force, to);
-        fx -= tforce.x * 2;
-        fy -= tforce.y * 2;
+      if ((Math.abs(temp.x) + Math.abs(temp.y)) > 0) {
+        let tforce = proj(game.balls[i].force, temp);
+        game.balls[i].force.x -= tforce.x * 2;
+        game.balls[i].force.y -= tforce.y * 2;
+        game.balls[i].pos.x += temp.x;
+        game.balls[i].pos.y += temp.y;
       }
-      game.balls[i].force.x += fx;
-      game.balls[i].force.y += fy;
     }
 
     for (let j = 0; j < game.balls.length; j++) {
@@ -267,8 +297,10 @@ function drawGame() {
 
   for (let i = 0; i < game.rects.length; i++) {
     ctx.beginPath();
-    ctx.rect(game.rects[i].pos.x, game.rects[i].pos.y, game.rects[i].width, game.rects[i].height)
+    ctx.rect(game.rects[i].pos.x, game.rects[i].pos.y, game.rects[i].width, game.rects[i].height);
     ctx.strokeStyle = "black";
+    ctx.fillStyle = "black";
+    ctx.fill();
     ctx.stroke();
   }
 
@@ -317,7 +349,7 @@ var interval2 = undefined;
 
 function start() {
   game.set();
-  board.resize(640, 480);
+  board.resize(1200, 500);
   clearInterval(interval1);
   clearInterval(interval2);
   interval1 = setInterval(drawGame, 10)
