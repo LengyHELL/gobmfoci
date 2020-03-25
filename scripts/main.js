@@ -180,7 +180,10 @@ var game = {
   balls : [],
   rects : [],
   selected : -1,
-  power : 1000,
+  powerPrec : 50,
+  powerPrecMin : 1,
+  powerMax : 15000,
+  resist : 0.01,
   //ballPic : new Image(0, 0),
   set : function(p) {
     //this.ballPic.src = "/gombfoci/scripts/ball.png?" + new Date().getTime();
@@ -216,13 +219,10 @@ function isMoving() {
 }
 
 function updateGame() {
-  let resist = 0.01;
-
-  game.power += board.mousePos.whl * 100;
-  if (game.power < 0) { game.power = 0; }
-  if (game.power > 15000) { game.power = 15000; }
+  game.powerPrec += board.mousePos.whl * 1;
+  if (game.powerPrec < game.powerPrecMin) { game.powerPrec = game.powerPrecMin; }
+  if (game.powerPrec > 100) { game.powerPrec = 100; }
   board.mousePos.whl = 0;
-  document.getElementById("power").innerHTML = game.power;
 
   if (board.mousePos.but == 0) { board.clickLock = false; }
   else if ((board.mousePos.but > 0) && !board.clickLock && !isMoving()) {
@@ -233,8 +233,10 @@ function updateGame() {
       m = magn(dir);
       dir.x /= m;
       dir.y /= m;
-      game.balls[game.selected].force.x += dir.x * game.power;
-      game.balls[game.selected].force.y += dir.y * game.power;
+
+      let tempPwr = (game.powerMax / 100) * game.powerPrec;
+      game.balls[game.selected].force.x += dir.x * tempPwr;
+      game.balls[game.selected].force.y += dir.y * tempPwr;
       game.selected = -1;
     }
     if (board.mousePos.but == 2) {
@@ -286,8 +288,8 @@ function updateGame() {
 
     game.balls[i].pos.x += game.balls[i].force.x / 1000;
     game.balls[i].pos.y += game.balls[i].force.y / 1000;
-    game.balls[i].force.x -= game.balls[i].force.x * resist;
-    game.balls[i].force.y -= game.balls[i].force.y * resist;
+    game.balls[i].force.x -= game.balls[i].force.x * game.resist;
+    game.balls[i].force.y -= game.balls[i].force.y * game.resist;
   }
 }
 
@@ -295,11 +297,18 @@ function drawGame() {
   board.context.clearRect(0, 0, board.canvas.width, board.canvas.height);
   let ctx = board.context;
 
+  ctx.beginPath();
+  ctx.rect(0, 0, 1200, 520);
+  ctx.strokeStyle = "#5fc333";
+  ctx.fillStyle = "#5fc333";
+  ctx.fill();
+  ctx.stroke();
+
   for (let i = 0; i < game.rects.length; i++) {
     ctx.beginPath();
     ctx.rect(game.rects[i].pos.x, game.rects[i].pos.y, game.rects[i].width, game.rects[i].height);
-    ctx.strokeStyle = "black";
-    ctx.fillStyle = "black";
+    ctx.strokeStyle = "white";
+    ctx.fillStyle = "white";
     ctx.fill();
     ctx.stroke();
   }
@@ -307,19 +316,19 @@ function drawGame() {
   for (let i = 0; i < game.balls.length; i++) {
     ctx.beginPath();
     ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.balls[i].radius, 0, 2 * Math.PI);
+    let lw = ctx.lineWidth;
+    ctx.lineWidth = 2;
 
     if (game.balls[i].type == 1) {
-      ctx.strokeStyle = "red";
-      ctx.fillStyle = "red";
+      ctx.fillStyle = "#dc4242";
     }
     else if (game.balls[i].type == 2) {
-      ctx.strokeStyle = "blue";
-      ctx.fillStyle = "blue";
+      ctx.fillStyle = "#424ddc";
     }
     else {
-      ctx.strokeStyle = "black";
-      ctx.fillStyle = "black";
+      ctx.fillStyle = "#aaaaaa";
     }
+    ctx.strokeStyle = "#5a5a5a";
 
     ctx.fill();
     ctx.stroke();
@@ -327,11 +336,36 @@ function drawGame() {
     if (i == game.selected) {
       ctx.beginPath();
       ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.balls[i].radius + 10, 0, 2 * Math.PI);
-      ctx.strokeStyle = "black";
+
+      ctx.moveTo(game.balls[i].pos.x, game.balls[i].pos.y);
+      ctx.lineTo(board.mousePos.x, board.mousePos.y);
+
+      ctx.strokeStyle = "#5a5a5a";
       ctx.stroke();
     }
+    ctx.lineWidth = lw;
     //ctx.drawImage(game.ballPic, game.balls[i].pos.x - (31 / 2), game.balls[i].pos.y - (31 / 2), 31, 31);
   }
+
+  //---------hud---------
+  ctx.beginPath();
+  ctx.rect(100, 505, 1000, 10);
+  ctx.fillStyle = "gray";
+  ctx.strokeStyle = "gray";
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.rect(100, 505, (1000 / 100) * game.powerPrec, 10);
+  ctx.fillStyle = "orange";
+  ctx.strokeStyle = "orange";
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.rect(100, 505, 1000, 10);
+  ctx.strokeStyle = "black";
+  ctx.stroke();
 }
 
 
@@ -349,7 +383,7 @@ var interval2 = undefined;
 
 function start() {
   game.set();
-  board.resize(1200, 500);
+  board.resize(1200, 520);
   clearInterval(interval1);
   clearInterval(interval2);
   interval1 = setInterval(drawGame, 10)
