@@ -1,0 +1,4 @@
+var menu = {
+  title : "",
+  options : []
+};
