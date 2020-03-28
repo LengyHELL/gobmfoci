@@ -8,10 +8,11 @@ function Ball(x, y, r, m, t) {
   this.type = t;
 }
 
-function Rect(x, y, w, h) {
+function Rect(x, y, w, h, t) {
   this.pos = new Vector(x, y);
   this.width = w;
   this.height = h;
+  this.type = t;
 }
 
 function overlap(s1, e1, s2, e2) {

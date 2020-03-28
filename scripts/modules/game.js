@@ -4,33 +4,86 @@ import { board } from "./board.js";
 
 var game = {
   balls : [],
+  hitPos : 0,//hitting position of the play ball
   rects : [],
   selected : -1,
   powerPrec : 50,
   powerPrecMin : 1,
   powerMax : 15000,
   resist : 0.01,
+  players : 0,//num of players
+  scores : [0, 0],//red, blue
+  wins : [0, 0],//red, blue
+  turn : 0,//0-red, 1-blue
+  lineup : 0,//0-red_left, 1-blue_left
+  state : 0,//0-pause, 1-red_goal, 2-blue_goal, 3-false_goal
+  pause : false,
+  goalTimer : 1000,
   //ballPic : new Image(0, 0),
   set : function(p) {
     //this.ballPic.src = "/gombfoci/scripts/ball.png?" + new Date().getTime();
-    this.frames = 0;
+    this.balls = [];
+    this.rects = [];
+    this.players = p;
+
+    this.state = 0;
+
     this.balls.push(new Ball(600, 250, 10, 4, 0));
-    this.balls.push(new Ball(400, 250, 15, 6, 1));
-    this.balls.push(new Ball(800, 250, 15, 6, 2));
 
-    this.rects.push(new Rect(105, 0, 990, 5));
-    this.rects.push(new Rect(100, 0, 5, 150));
-    this.rects.push(new Rect(100, 350, 5, 150));
-    this.rects.push(new Rect(0, 150, 5, 200));
-    this.rects.push(new Rect(0, 145, 100, 5));
-    this.rects.push(new Rect(0, 350, 100, 5));
+    let ls = 1;
+    let rs = 2;
+    if (this.lineup == 1) {
+      ls = 2;
+      rs = 1;
+    }
 
-    this.rects.push(new Rect(105, 495, 990, 5));
-    this.rects.push(new Rect(1095, 0, 5, 150));
-    this.rects.push(new Rect(1095, 350, 5, 150));
-    this.rects.push(new Rect(1195, 150, 5, 200));
-    this.rects.push(new Rect(1100, 145, 100, 5));
-    this.rects.push(new Rect(1100, 350, 100, 5));
+    if (p == 3) {
+      this.balls.push(new Ball(400, 250, 15, 6, ls));
+      this.balls.push(new Ball(200, 150, 15, 6, ls));
+      this.balls.push(new Ball(200, 350, 15, 6, ls));
+
+      this.balls.push(new Ball(800, 250, 15, 6, rs));
+      this.balls.push(new Ball(1000, 150, 15, 6, rs));
+      this.balls.push(new Ball(1000, 350, 15, 6, rs));
+    }
+    else if (p == 4) {
+      this.balls.push(new Ball(400, 250, 15, 6, ls));
+      this.balls.push(new Ball(250, 250, 15, 6, ls));
+      this.balls.push(new Ball(200, 150, 15, 6, ls));
+      this.balls.push(new Ball(200, 350, 15, 6, ls));
+
+      this.balls.push(new Ball(800, 250, 15, 6, rs));
+      this.balls.push(new Ball(950, 250, 15, 6, rs));
+      this.balls.push(new Ball(1000, 150, 15, 6, rs));
+      this.balls.push(new Ball(1000, 350, 15, 6, rs));
+    }
+    else if (p == 5) {
+      this.balls.push(new Ball(400, 200, 15, 6, ls));
+      this.balls.push(new Ball(400, 300, 15, 6, ls));
+      this.balls.push(new Ball(250, 250, 15, 6, ls));
+      this.balls.push(new Ball(200, 150, 15, 6, ls));
+      this.balls.push(new Ball(200, 350, 15, 6, ls));
+
+      this.balls.push(new Ball(800, 200, 15, 6, rs));
+      this.balls.push(new Ball(800, 300, 15, 6, rs));
+      this.balls.push(new Ball(950, 250, 15, 6, rs));
+      this.balls.push(new Ball(1000, 150, 15, 6, rs));
+      this.balls.push(new Ball(1000, 350, 15, 6, rs));
+    }
+
+    this.rects.push(new Rect(105, 0, 990, 5, 0));
+    this.rects.push(new Rect(100, 0, 5, 150, 0));
+    this.rects.push(new Rect(100, 350, 5, 150, 0));
+    this.rects.push(new Rect(0, 150, 5, 200, rs));
+    this.rects.push(new Rect(0, 145, 100, 5, rs));
+    this.rects.push(new Rect(0, 350, 100, 5, rs));
+
+    this.rects.push(new Rect(105, 495, 990, 5, 0));
+    this.rects.push(new Rect(1095, 0, 5, 150, 0));
+    this.rects.push(new Rect(1095, 350, 5, 150, 0));
+    this.rects.push(new Rect(1195, 150, 5, 200, ls));
+    this.rects.push(new Rect(1100, 145, 100, 5, ls));
+    this.rects.push(new Rect(1100, 350, 100, 5, ls));
   },
 };
 
@@ -50,9 +103,43 @@ function updateGame() {
   if (game.powerPrec > 100) { game.powerPrec = 100; }
   board.mousePos.whl = 0;
 
+  let pbidx = -1;
+  for (let i = 0; pbidx < 0; i++) {
+    if (game.balls[i].type == 0) { pbidx = i; }
+  }
+
+  if ((game.balls[pbidx].pos.y > 150) && (game.balls[pbidx].pos.y < 350) && (game.state == 0)) {
+    let ls = 1;
+    let rs = 2;
+    if (game.lineup == 1) {
+      ls = 2;
+      rs = 1;
+    }
+
+    if (game.balls[pbidx].pos.x < 100) {
+      if (game.hitPos < 400) {
+        game.state = rs;
+        game.scores[rs - 1] += 1;
+      }
+      else {
+        game.state = 3;
+      }
+    }
+    else if (game.balls[pbidx].pos.x > 1100) {
+      if (game.hitPos > 800) {
+        game.state = ls;
+        game.scores[ls - 1] += 1;
+      }
+      else {
+        game.state = 3;
+      }
+    }
+  }
+
   if (board.mousePos.but == 0) { board.clickLock = false; }
-  else if ((board.mousePos.but > 0) && !board.clickLock && !isMoving()) {
+  else if ((board.mousePos.but > 0) && !board.clickLock && !isMoving() && (game.state == 0)) {
     board.clickLock = true;
+    game.hitPos = game.balls[pbidx].pos.x;
 
     if ((board.mousePos.but == 1) && (game.selected >= 0)) {
       let dir = new Vector(board.mousePos.x - game.balls[game.selected].pos.x, board.mousePos.y - game.balls[game.selected].pos.y)
@@ -64,12 +151,13 @@ function updateGame() {
       game.balls[game.selected].force.x += dir.x * tempPwr;
       game.balls[game.selected].force.y += dir.y * tempPwr;
       game.selected = -1;
+      game.turn = 1 - game.turn;
     }
     if (board.mousePos.but == 2) {
       let sel = false;
       for (let i = 0; (i < game.balls.length) && !sel; i++) {
         let dv = new Vector(game.balls[i].pos.x - board.mousePos.x, game.balls[i].pos.y - board.mousePos.y);
-        if ((magn(dv) < (game.balls[i].radius)) && (game.balls[i].type != 0)) {
+        if ((magn(dv) <= (game.balls[i].radius)) && (game.balls[i].type != 0) && (game.turn == (game.balls[i].type - 1))) {
           sel = true;
           game.selected = i;
         }
@@ -80,10 +168,15 @@ function updateGame() {
     }
   }
 
+  if (game.state > 0) {
+    game.goalTimer -= 1;
+    if (game.goalTimer <= 0) {
+      game.goalTimer = 1000;
+      game.set(game.players);
+    }
+  }
+
   for (let i = 0; i < game.balls.length; i++) {
-
-
-
     for (let j = 0; j < game.rects.length; j++) {
       let temp = ballToRect(game.balls[i], game.rects[j]);
       if ((Math.abs(temp.x) + Math.abs(temp.y)) > 0) {
@@ -122,6 +215,7 @@ function updateGame() {
 function drawGame() {
   board.context.clearRect(0, 0, board.canvas.width, board.canvas.height);
   let ctx = board.context;
+  ctx.font = "30px Arial";
 
   ctx.beginPath();
   ctx.rect(0, 0, 1200, 520);
@@ -130,9 +224,88 @@ function drawGame() {
   ctx.fill();
   ctx.stroke();
 
+  ctx.beginPath();
+  ctx.rect(25, 410, 50, 50);
+  if (game.turn == 0) {
+    ctx.strokeStyle = "#dc4242";
+    ctx.fillStyle = "#dc4242";
+  }
+  else {
+    ctx.strokeStyle = "#424ddc";
+    ctx.fillStyle = "#424ddc";
+  }
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.rect(397.5, 5, 5, 490);
+  ctx.rect(797.5, 5, 5, 490);
+  ctx.rect(100, 150, 5, 200);
+  ctx.rect(1095, 150, 5, 200);
+  ctx.strokeStyle = "#50b424";
+  ctx.fillStyle = "#50b424";
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.rect(597.5, 5, 5, 490);
+  ctx.strokeStyle = "white";
+  ctx.fillStyle = "white";
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(600, 250, 100, 0, 2 * Math.PI);
+
+  let lw = ctx.lineWidth;
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "white";
+
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(600, 250, 5, 0, 2 * Math.PI);
+
+  ctx.stroke();
+  ctx.lineWidth = lw;
+
+  if (game.state == 1) {
+    ctx.fillStyle = "#dc4242"
+    ctx.fillText("Goal!", 500, 200);
+  }
+  else if (game.state == 2) {
+    ctx.fillStyle = "#424ddc"
+    ctx.fillText("Goal!", 500, 200);
+  }
+  else if (game.state == 3) {
+    ctx.fillStyle = "black"
+    ctx.fillText("Fault.", 500, 200);
+  }
+
+  let ls = 0;
+  let rs = 1;
+  if (game.lineup == 1) {
+    ls = 1;
+    rs = 0;
+  }
+
+  ctx.fillStyle = "black"
+  ctx.fillText(game.scores[ls], 10, 50);
+  ctx.fillText(game.scores[rs], 1110, 50);
+
+
+
+  let shx = Math.floor(Math.random() * 11) - 5;
+  let shy = Math.floor(Math.random() * 11) - 5;
+
   for (let i = 0; i < game.rects.length; i++) {
     ctx.beginPath();
-    ctx.rect(game.rects[i].pos.x, game.rects[i].pos.y, game.rects[i].width, game.rects[i].height);
+    if ((game.state != 0) && (game.rects[i].type == game.state)) {
+      ctx.rect(game.rects[i].pos.x + shx, game.rects[i].pos.y + shy, game.rects[i].width, game.rects[i].height);
+    }
+    else {
+      ctx.rect(game.rects[i].pos.x, game.rects[i].pos.y, game.rects[i].width, game.rects[i].height);
+    }
     ctx.strokeStyle = "white";
     ctx.fillStyle = "white";
     ctx.fill();

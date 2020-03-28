@@ -5,7 +5,7 @@ board.set();
 var drawInterval = undefined;
 var updateInterval = undefined;
 
-game.set();
+game.set(5);
 board.resize(1200, 520);
 clearInterval(drawInterval);
 clearInterval(updateInterval);
