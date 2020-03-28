@@ -25,6 +25,7 @@ var game = {
   passDeg : 45,
   forceSelect : false,
   forceSelected : -1,
+  shoot : false,
   //ballPic : new Image(0, 0),
   set : function(p) {
     //this.ballPic.src = "/gombfoci/scripts/ball.png?" + new Date().getTime();
@@ -33,6 +34,7 @@ var game = {
     this.players = p;
     this.powerPrec = 50;
     this.forceSelect = false;
+    this.shoot = false;
 
     this.state = 0;
 
@@ -152,7 +154,7 @@ function updateGame() {
     let selidx = -1;
     let min = game.passDist + 1;
     for (let i = 0; i < game.balls.length; i++) {
-      if ((game.balls[i].type == (game.turn + 1)) && (i != game.selected)) {
+      if ((game.balls[i].type == (game.turn + 1)) && (i != game.selected) && game.shoot) {
         let dv = new Vector(game.balls[pbidx].pos.x - game.balls[i].pos.x, game.balls[pbidx].pos.y - game.balls[i].pos.y);
         let dvdir = magn(dv);
         if (dvdir <= game.passDist) {
@@ -186,6 +188,7 @@ function updateGame() {
       game.forceSelect = true;
     }
     game.selected = -1;
+    game.shoot = false;
   }
 
   if (board.mousePos.but == 0) { board.clickLock = false; }
@@ -247,6 +250,9 @@ function updateGame() {
     for (let j = 0; j < game.balls.length; j++) {
       if (j != i) {
         if (ballToBall(game.balls[i], game.balls[j])) {//vegp - kezdop
+          if (((i == pbidx) && (j == game.selected)) || ((i == game.selected) && (j == pbidx))) {
+            game.shoot = true;
+          }
           let to = new Vector(game.balls[j].pos.x - game.balls[i].pos.x, game.balls[j].pos.y - game.balls[i].pos.y);
 
           if (deg(to, game.balls[i].force) <= 90) {
@@ -406,7 +412,7 @@ function drawGame() {
       ctx.stroke();
     }
 
-    if ((game.balls[i].type == (game.turn + 1)) && game.moving && (i != game.selected) && (game.state == 0)){
+    if ((game.balls[i].type == (game.turn + 1)) && game.moving && (i != game.selected) && (game.state == 0) && game.shoot){
       let ls = 0;
       let rs = 1;
       if (game.lineup == 1) {
