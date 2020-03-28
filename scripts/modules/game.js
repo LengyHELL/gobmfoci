@@ -23,6 +23,8 @@ var game = {
   passChecked : true,
   passDist : 100,
   passDeg : 45,
+  forceSelect : false,
+  forceSelected : -1,
   //ballPic : new Image(0, 0),
   set : function(p) {
     //this.ballPic.src = "/gombfoci/scripts/ball.png?" + new Date().getTime();
@@ -30,6 +32,7 @@ var game = {
     this.rects = [];
     this.players = p;
     this.powerPrec = 50;
+    this.forceSelect = false;
 
     this.state = 0;
 
@@ -146,10 +149,13 @@ function updateGame() {
   if (!game.passChecked && !game.moving && (game.state == 0)) {
     game.passChecked = true;
     let pass = false;
+    let selidx = -1;
+    let min = game.passDist + 1;
     for (let i = 0; i < game.balls.length; i++) {
       if ((game.balls[i].type == (game.turn + 1)) && (i != game.selected)) {
         let dv = new Vector(game.balls[pbidx].pos.x - game.balls[i].pos.x, game.balls[pbidx].pos.y - game.balls[i].pos.y);
-        if (magn(dv) <= game.passDist) {
+        let dvdir = magn(dv);
+        if (dvdir <= game.passDist) {
           let ls = 0;
           let rs = 1;
           if (game.lineup == 1) {
@@ -161,6 +167,10 @@ function updateGame() {
           else { sidev.x = -1; }
 
           if (deg(sidev, unit(dv)) <= game.passDeg) {
+            if (dvdir < min) {
+              min = dvdir;
+              selidx = i;
+            }
             pass = true;
           }
         }
@@ -168,6 +178,12 @@ function updateGame() {
     }
     if (!pass) {
       game.turn = 1 - game.turn;
+      game.forceSelected = -1;
+      game.forceSelect = false;
+    }
+    else {
+      game.forceSelected = selidx;
+      game.forceSelect = true;
     }
     game.selected = -1;
   }
@@ -193,8 +209,13 @@ function updateGame() {
       for (let i = 0; (i < game.balls.length) && !sel; i++) {
         let dv = new Vector(game.balls[i].pos.x - board.mousePos.x, game.balls[i].pos.y - board.mousePos.y);
         if ((magn(dv) <= (game.balls[i].radius)) && (game.balls[i].type != 0) && (game.turn == (game.balls[i].type - 1))) {
-          sel = true;
-          game.selected = i;
+          if (game.forceSelect && (i != game.forceSelected)) {
+            game.selected = -1;
+          }
+          else {
+            sel = true;
+            game.selected = i;
+          }
         }
         else {
           game.selected = -1;
@@ -330,8 +351,8 @@ function drawGame() {
 
 
 
-  let shx = Math.floor(Math.random() * 11) - 5;
-  let shy = Math.floor(Math.random() * 11) - 5;
+  let shx = Math.floor(Math.random() * 5) - 2;
+  let shy = Math.floor(Math.random() * 5) - 2;
 
   for (let i = 0; i < game.rects.length; i++) {
     ctx.beginPath();
@@ -375,6 +396,13 @@ function drawGame() {
       ctx.lineTo(board.mousePos.x, board.mousePos.y);
 
       ctx.strokeStyle = "#5a5a5a";
+      ctx.stroke();
+    }
+
+    if ((i == game.forceSelected) && (game.selected != game.forceSelected) && !game.moving && (game.state == 0)) {
+      ctx.beginPath();
+      ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.balls[i].radius + 10, 0, 2 * Math.PI);
+      ctx.strokeStyle = "#81d1ce";
       ctx.stroke();
     }
 
