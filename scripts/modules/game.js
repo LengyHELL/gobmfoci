@@ -6,6 +6,7 @@ var game = {
   balls : [],
   hitPos : 0,//hitting position of the play ball
   rects : [],
+  moving : false,
   selected : -1,
   powerPrec : 50,
   powerPrecMin : 1,
@@ -19,12 +20,16 @@ var game = {
   state : 0,//0-pause, 1-red_goal, 2-blue_goal, 3-false_goal
   pause : false,
   goalTimer : 1000,
+  passChecked : true,
+  passDist : 100,
+  passDeg : 45,
   //ballPic : new Image(0, 0),
   set : function(p) {
     //this.ballPic.src = "/gombfoci/scripts/ball.png?" + new Date().getTime();
     this.balls = [];
     this.rects = [];
     this.players = p;
+    this.powerPrec = 50;
 
     this.state = 0;
 
@@ -98,6 +103,8 @@ function isMoving() {
 }
 
 function updateGame() {
+  game.moving = isMoving();
+
   game.powerPrec += board.mousePos.whl * 1;
   if (game.powerPrec < game.powerPrecMin) { game.powerPrec = game.powerPrecMin; }
   if (game.powerPrec > 100) { game.powerPrec = 100; }
@@ -136,8 +143,37 @@ function updateGame() {
     }
   }
 
+  if (!game.passChecked && !game.moving && (game.state == 0)) {
+    game.passChecked = true;
+    let pass = false;
+    for (let i = 0; i < game.balls.length; i++) {
+      if ((game.balls[i].type == (game.turn + 1)) && (i != game.selected)) {
+        let dv = new Vector(game.balls[pbidx].pos.x - game.balls[i].pos.x, game.balls[pbidx].pos.y - game.balls[i].pos.y);
+        if (magn(dv) <= game.passDist) {
+          let ls = 0;
+          let rs = 1;
+          if (game.lineup == 1) {
+            ls = 1;
+            rs = 0;
+          }
+          let sidev = new Vector(0, 0);
+          if (game.turn == ls) { sidev.x = 1; }
+          else { sidev.x = -1; }
+
+          if (deg(sidev, unit(dv)) <= game.passDeg) {
+            pass = true;
+          }
+        }
+      }
+    }
+    if (!pass) {
+      game.turn = 1 - game.turn;
+    }
+    game.selected = -1;
+  }
+
   if (board.mousePos.but == 0) { board.clickLock = false; }
-  else if ((board.mousePos.but > 0) && !board.clickLock && !isMoving() && (game.state == 0)) {
+  else if ((board.mousePos.but > 0) && !board.clickLock && !game.moving && (game.state == 0)) {
     board.clickLock = true;
     game.hitPos = game.balls[pbidx].pos.x;
 
@@ -150,8 +186,7 @@ function updateGame() {
       let tempPwr = (game.powerMax / 100) * game.powerPrec;
       game.balls[game.selected].force.x += dir.x * tempPwr;
       game.balls[game.selected].force.y += dir.y * tempPwr;
-      game.selected = -1;
-      game.turn = 1 - game.turn;
+      game.passChecked = false;
     }
     if (board.mousePos.but == 2) {
       let sel = false;
@@ -332,7 +367,7 @@ function drawGame() {
     ctx.fill();
     ctx.stroke();
 
-    if (i == game.selected) {
+    if ((i == game.selected) && !game.moving && (game.state == 0)) {
       ctx.beginPath();
       ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.balls[i].radius + 10, 0, 2 * Math.PI);
 
@@ -340,6 +375,31 @@ function drawGame() {
       ctx.lineTo(board.mousePos.x, board.mousePos.y);
 
       ctx.strokeStyle = "#5a5a5a";
+      ctx.stroke();
+    }
+
+    if ((game.balls[i].type == (game.turn + 1)) && game.moving && (i != game.selected) && (game.state == 0)){
+      let ls = 0;
+      let rs = 1;
+      if (game.lineup == 1) {
+        ls = 1;
+        rs = 0;
+      }
+      let deg1 = 0;
+      let deg2 = 0;
+      if (game.turn == ls) {
+        deg1 = ((360 - game.passDeg) / 180) * Math.PI;
+        deg2 = (game.passDeg / 180) * Math.PI;
+      }
+      else {
+        deg1 = ((180 - game.passDeg) / 180) * Math.PI;
+        deg2 = ((180 + game.passDeg) / 180) * Math.PI;
+      }
+      ctx.beginPath();
+      ctx.moveTo(game.balls[i].pos.x, game.balls[i].pos.y);
+      ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.passDist, deg1, deg2);
+      ctx.lineTo(game.balls[i].pos.x, game.balls[i].pos.y);
+      ctx.strokeStyle = "#81d1ce";
       ctx.stroke();
     }
     ctx.lineWidth = lw;
