@@ -43,9 +43,13 @@ var menu = {
     this.options.push("3 players");
     this.options.push("4 players");
     this.options.push("5 players");
+    this.options.push("Back");
 
     this.check = function() {
-      if (this.selected >= 0) {
+      if (this.selected == 3) {
+        menu.setMain();
+      }
+      else if (this.selected >= 0) {
         clearInterval(board.updateInterval);
         clearInterval(board.drawInterval);
         game.set(this.selected + 3);
