@@ -52,6 +52,7 @@ var menu = {
       else if (this.selected >= 0) {
         clearInterval(board.updateInterval);
         clearInterval(board.drawInterval);
+        game.reset();
         game.set(this.selected + 3);
         board.updateInterval = setInterval(updateGame, 1);
         board.drawInterval = setInterval(drawGame, 10);
