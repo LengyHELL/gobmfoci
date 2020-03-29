@@ -426,7 +426,8 @@ function drawGame() {
 
   for (let i = 0; i < game.rects.length; i++) {
     ctx.beginPath();
-    if ((game.state != 0) && (game.state != 3) && ((game.rects[i].type == game.state) || (game.rects[i].type == game.state - 3) || (game.rects[i].type == (game.winner + 1)))) {
+    if ((game.state != 0) && (game.state != 3) && ((game.rects[i].type == game.state) || (game.rects[i].type == game.state - 3)
+    || ((game.rects[i].type == (game.winner + 1)) && (game.winner >= 0)))) {
       ctx.rect(game.rects[i].pos.x + shx, game.rects[i].pos.y + shy, game.rects[i].width, game.rects[i].height);
     }
     else {
