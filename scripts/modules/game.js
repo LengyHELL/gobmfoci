@@ -1,6 +1,7 @@
 import { Vector, magn, proj, unit, deg } from "./vector.js";
 import { Ball, Rect, ballToBall, ballToRect } from "./objects.js";
 import { board } from "./board.js";
+import { menu, updateMenu, drawMenu } from "./menu.js";
 
 var game = {
   balls : [],
@@ -17,8 +18,7 @@ var game = {
   wins : [0, 0],//red, blue
   turn : 0,//0-red, 1-blue
   lineup : 0,//0-red_left, 1-blue_left
-  state : 0,//0-pause, 1-red_goal, 2-blue_goal, 3-false_goal
-  pause : false,
+  state : 0,//0-pause, 1-red_goal, 2-blue_goal, 3-false_goal, 4-red_win, 5-blue_win, 6-game_over
   goalTimer : 1000,
   passChecked : true,
   passDist : 100,
@@ -26,7 +26,19 @@ var game = {
   forceSelect : false,
   forceSelected : -1,
   shoot : false,
+  onPause : false,
+  round : 1,
+  winner : -1,
   //ballPic : new Image(0, 0),
+  reset : function() {
+    this.lineup = 0;
+    this.scores = [0, 0];
+    this.wins = [0, 0];
+    this.turn = 0;
+    this.round = 1;
+    this.winner = -1;
+    this.passChecked = true;
+  },
   set : function(p) {
     //this.ballPic.src = "/gombfoci/scripts/ball.png?" + new Date().getTime();
     this.balls = [];
@@ -35,6 +47,7 @@ var game = {
     this.powerPrec = 50;
     this.forceSelect = false;
     this.shoot = false;
+    this.selected = -1;
 
     this.state = 0;
 
@@ -107,7 +120,19 @@ function isMoving() {
   else { return false; }
 }
 
+function shade() {
+  let ctx = board.context;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+  ctx.fillRect(0, 0, board.canvas.width, board.canvas.height);
+}
+
 function updateGame() {
+  if ((board.mousePos.x >= 1125) && (board.mousePos.x <= 1175)
+  && (board.mousePos.y >= 410) && (board.mousePos.y <= 460)) {
+    game.onPause = true;
+  }
+  else { game.onPause = false; }
+
   game.moving = isMoving();
 
   game.powerPrec += board.mousePos.whl * 1;
@@ -128,22 +153,34 @@ function updateGame() {
       rs = 1;
     }
 
+    let team = -1;
+
     if (game.balls[pbidx].pos.x < 100) {
-      if (game.hitPos < 400) {
-        game.state = rs;
-        game.scores[rs - 1] += 1;
-      }
-      else {
-        game.state = 3;
-      }
+      if (game.hitPos < 400) { team = rs; }
+      else { game.state = 3; }
     }
     else if (game.balls[pbidx].pos.x > 1100) {
-      if (game.hitPos > 800) {
-        game.state = ls;
-        game.scores[ls - 1] += 1;
+      if (game.hitPos > 800) { team = ls; }
+      else { game.state = 3; }
+    }
+
+    if (team >= 0) {
+      game.scores[team - 1] += 1;
+
+      if (game.scores[team - 1] >= 3) {
+        game.wins[team - 1] += 1;
+        game.round += 1;
+
+        if (game.wins[team - 1] >= 2) {
+          game.state = 6;
+          game.winner = team - 1;
+        }
+        else {
+          game.state = team + 3;
+        }
       }
       else {
-        game.state = 3;
+        game.state = team;
       }
     }
   }
@@ -196,7 +233,15 @@ function updateGame() {
     board.clickLock = true;
     game.hitPos = game.balls[pbidx].pos.x;
 
-    if ((board.mousePos.but == 1) && (game.selected >= 0)) {
+    if ((board.mousePos.but == 1) && game.onPause) {
+      shade();
+      clearInterval(board.updateInterval);
+      clearInterval(board.drawInterval);
+      menu.setPause();
+      board.updateInterval = setInterval(updateMenu, 1);
+      board.drawInterval = setInterval(drawMenu, 10);
+    }
+    else if ((board.mousePos.but == 1) && (game.selected >= 0)) {
       let dir = new Vector(board.mousePos.x - game.balls[game.selected].pos.x, board.mousePos.y - game.balls[game.selected].pos.y)
       let m = magn(dir);
       dir.x /= m;
@@ -231,6 +276,19 @@ function updateGame() {
     game.goalTimer -= 1;
     if (game.goalTimer <= 0) {
       game.goalTimer = 1000;
+      if (game.state == 6) {
+        shade();
+        clearInterval(board.updateInterval);
+        clearInterval(board.drawInterval);
+        menu.setGameOver();
+        board.updateInterval = setInterval(updateMenu, 1);
+        board.drawInterval = setInterval(drawMenu, 10);
+      }
+      else if (game.state > 3) {
+        game.scores = [0, 0];
+        game.lineup = 1 - game.lineup;
+        game.turn = 0;
+      }
       game.set(game.players);
     }
   }
@@ -277,7 +335,7 @@ function updateGame() {
 function drawGame() {
   board.context.clearRect(0, 0, board.canvas.width, board.canvas.height);
   let ctx = board.context;
-  ctx.font = "30px Arial";
+  ctx.font = "50px Consolas";
 
   ctx.beginPath();
   ctx.rect(0, 0, 1200, 520);
@@ -289,13 +347,30 @@ function drawGame() {
   ctx.beginPath();
   ctx.rect(25, 410, 50, 50);
   if (game.turn == 0) {
-    ctx.strokeStyle = "#dc4242";
+    ctx.strokeStyle = "black";
     ctx.fillStyle = "#dc4242";
   }
   else {
-    ctx.strokeStyle = "#424ddc";
+    ctx.strokeStyle = "black";
     ctx.fillStyle = "#424ddc";
   }
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.rect(1125, 410, 50, 50);
+  ctx.strokeStyle = "black";
+  ctx.fillStyle = "#dc4242";
+  if (game.onPause && !game.moving) {
+    ctx.fill();
+  }
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.rect(1140, 425, 5, 20);
+  ctx.rect(1155, 425, 5, 20);
+  ctx.strokeStyle = "black";
+  ctx.fillStyle = "black";
   ctx.fill();
   ctx.stroke();
 
@@ -331,19 +406,6 @@ function drawGame() {
   ctx.stroke();
   ctx.lineWidth = lw;
 
-  if (game.state == 1) {
-    ctx.fillStyle = "#dc4242"
-    ctx.fillText("Goal!", 500, 200);
-  }
-  else if (game.state == 2) {
-    ctx.fillStyle = "#424ddc"
-    ctx.fillText("Goal!", 500, 200);
-  }
-  else if (game.state == 3) {
-    ctx.fillStyle = "black"
-    ctx.fillText("Fault.", 500, 200);
-  }
-
   let ls = 0;
   let rs = 1;
   if (game.lineup == 1) {
@@ -352,8 +414,10 @@ function drawGame() {
   }
 
   ctx.fillStyle = "black"
-  ctx.fillText(game.scores[ls], 10, 50);
-  ctx.fillText(game.scores[rs], 1110, 50);
+  ctx.fillText(game.scores[ls], 30, 50);
+  ctx.fillText(game.wins[ls], 30, 110);
+  ctx.fillText(game.scores[rs], 1130, 50);
+  ctx.fillText(game.wins[rs], 1130, 110);
 
 
 
@@ -362,7 +426,7 @@ function drawGame() {
 
   for (let i = 0; i < game.rects.length; i++) {
     ctx.beginPath();
-    if ((game.state != 0) && (game.rects[i].type == game.state)) {
+    if ((game.state != 0) && (game.state != 3) && ((game.rects[i].type == game.state) || (game.rects[i].type == game.state - 3) || (game.rects[i].type == (game.winner + 1)))) {
       ctx.rect(game.rects[i].pos.x + shx, game.rects[i].pos.y + shy, game.rects[i].width, game.rects[i].height);
     }
     else {
@@ -438,6 +502,41 @@ function drawGame() {
     }
     ctx.lineWidth = lw;
     //ctx.drawImage(game.ballPic, game.balls[i].pos.x - (31 / 2), game.balls[i].pos.y - (31 / 2), 31, 31);
+  }
+
+  if (game.state == 1) {
+    ctx.fillStyle = "#dc4242";
+    ctx.fillText("Goal!", 530, 200);
+  }
+  else if (game.state == 2) {
+    ctx.fillStyle = "#424ddc";
+    ctx.fillText("Goal!", 530, 200);
+  }
+  else if (game.state == 3) {
+    ctx.fillStyle = "black";
+    ctx.fillText("Fault.", 530, 200);
+  }
+  else if (game.state == 4) {
+    ctx.fillStyle = "#dc4242";
+    ctx.fillText("Red team won.", 435, 200);
+    ctx.fillStyle = "black";
+    ctx.fillText("Round " + String(game.round), 530, 250);
+  }
+  else if (game.state == 5) {
+    ctx.fillStyle = "#424ddc";
+    ctx.fillText("Blue team won.", 435, 200);
+    ctx.fillStyle = "black";
+    ctx.fillText("Round " + String(game.round), 530, 250);
+  }
+  else if (game.state == 6) {
+    if (game.winner == 0) {
+      ctx.fillStyle = "#dc4242";
+      ctx.fillText("Red team won.", 435, 200);
+    }
+    else {
+      ctx.fillStyle = "#424ddc";
+      ctx.fillText("Blue team won.", 435, 200);
+    }
   }
 
   //---------hud---------

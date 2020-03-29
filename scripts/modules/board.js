@@ -2,6 +2,8 @@ var board = {
   canvas : document.getElementById("cv1"),
   mousePos : { x : 1, y : 0, but : 0 , whl : 0},
   clickLock : true,
+  updateInterval : undefined,
+  drawInterval : undefined,
   set : function() {
     this.context = this.canvas.getContext("2d");
     this.clickLock = true;
