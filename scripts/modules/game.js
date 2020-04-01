@@ -333,117 +333,117 @@ function updateGame() {
 }
 
 function drawGame() {
+  //setting context
   board.context.clearRect(0, 0, board.canvas.width, board.canvas.height);
   let ctx = board.context;
   ctx.font = "50px Consolas";
 
-  ctx.beginPath();
-  ctx.rect(0, 0, 1200, 520);
-  ctx.strokeStyle = "#5fc333";
+  //drawing background rect
   ctx.fillStyle = "#5fc333";
-  ctx.fill();
-  ctx.stroke();
+  ctx.fillRect(0, 0, 1200, 520);
 
-  ctx.beginPath();
-  ctx.rect(25, 410, 50, 50);
-  if (game.turn == 0) {
-    ctx.strokeStyle = "black";
-    ctx.fillStyle = "#dc4242";
-  }
-  else {
-    ctx.strokeStyle = "black";
-    ctx.fillStyle = "#424ddc";
-  }
-  ctx.fill();
-  ctx.stroke();
+  //drawing turn indicator
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#5a5a5a";
+  if (game.turn == 0) { ctx.fillStyle = "#dc4242"; }
+  else { ctx.fillStyle = "#424ddc"; }
+  ctx.fillRect(25, 410, 50, 50);
+  ctx.strokeRect(25, 410, 50, 50);
 
-  ctx.beginPath();
-  ctx.rect(1125, 410, 50, 50);
-  ctx.strokeStyle = "black";
+  //drawing pause button hovering indicator
+  ctx.strokeStyle = "#5a5a5a";
   ctx.fillStyle = "#dc4242";
   if (game.onPause && !game.moving) {
-    ctx.fill();
+    ctx.fillRect(1125, 410, 50, 50);
   }
-  ctx.stroke();
+  ctx.strokeRect(1125, 410, 50, 50);
 
-  ctx.beginPath();
-  ctx.rect(1140, 425, 5, 20);
-  ctx.rect(1155, 425, 5, 20);
-  ctx.strokeStyle = "black";
-  ctx.fillStyle = "black";
-  ctx.fill();
-  ctx.stroke();
+  //drawing pause button indicator
+  ctx.fillStyle = "#5a5a5a";
+  ctx.fillRect(1140, 425, 5, 20);
+  ctx.fillRect(1155, 425, 5, 20);
 
-  ctx.beginPath();
-  ctx.rect(397.5, 5, 5, 490);
-  ctx.rect(797.5, 5, 5, 490);
-  ctx.rect(100, 150, 5, 200);
-  ctx.rect(1095, 150, 5, 200);
-  ctx.strokeStyle = "#50b424";
+  //drawing shooting lines, and goal lines
   ctx.fillStyle = "#50b424";
-  ctx.fill();
-  ctx.stroke();
+  ctx.fillRect(397.5, 5, 5, 490);
+  ctx.fillRect(797.5, 5, 5, 490);
+  ctx.fillRect(100, 150, 5, 200);
+  ctx.fillRect(1095, 150, 5, 200);
 
-  ctx.beginPath();
-  ctx.rect(597.5, 5, 5, 490);
-  ctx.strokeStyle = "white";
+  //drawing center line and circles
   ctx.fillStyle = "white";
-  ctx.fill();
-  ctx.stroke();
+  ctx.strokeStyle = "white";
+  ctx.fillRect(597.5, 5, 5, 490);
 
+  ctx.lineWidth = 5;
   ctx.beginPath();
   ctx.arc(600, 250, 100, 0, 2 * Math.PI);
-
-  let lw = ctx.lineWidth;
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = "white";
-
   ctx.stroke();
 
   ctx.beginPath();
   ctx.arc(600, 250, 5, 0, 2 * Math.PI);
-
+  ctx.fill();
   ctx.stroke();
-  ctx.lineWidth = lw;
 
+  //drawing score indicators
   let ls = 0;
+  let lc = "#dc4242";
   let rs = 1;
+  let rc = "#424ddc";
   if (game.lineup == 1) {
     ls = 1;
+    lc = "#424ddc";
     rs = 0;
+    rc = "#dc4242";
   }
 
-  ctx.fillStyle = "black"
-  ctx.fillText(game.scores[ls], 30, 50);
-  ctx.fillText(game.wins[ls], 30, 110);
-  ctx.fillText(game.scores[rs], 1130, 50);
-  ctx.fillText(game.wins[rs], 1130, 110);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#5a5a5a";
 
+  ctx.fillStyle = lc;
+  ctx.fillText(game.scores[ls], 35, 50);
+  ctx.strokeText(game.scores[ls], 35, 50);
 
+  ctx.fillStyle = rc;
+  ctx.fillText(game.scores[rs], 1135, 50);
+  ctx.strokeText(game.scores[rs], 1135, 50);
 
-  let shx = Math.floor(Math.random() * 5) - 2;
-  let shy = Math.floor(Math.random() * 5) - 2;
-
-  for (let i = 0; i < game.rects.length; i++) {
+  //drawing win indicators
+  ctx.strokeStyle = "#5a5a5a";
+  ctx.fillStyle = "#aaaaaa";
+  for (let i = 0; i < game.wins[ls]; i++) {
     ctx.beginPath();
-    if ((game.state != 0) && (game.state != 3) && ((game.rects[i].type == game.state) || (game.rects[i].type == game.state - 3)
-    || ((game.rects[i].type == (game.winner + 1)) && (game.winner >= 0)))) {
-      ctx.rect(game.rects[i].pos.x + shx, game.rects[i].pos.y + shy, game.rects[i].width, game.rects[i].height);
-    }
-    else {
-      ctx.rect(game.rects[i].pos.x, game.rects[i].pos.y, game.rects[i].width, game.rects[i].height);
-    }
-    ctx.strokeStyle = "white";
-    ctx.fillStyle = "white";
+    ctx.arc(50, 70 + (i * 30), 10, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
+  }
+  for (let i = 0; i < game.wins[rs]; i++) {
+    ctx.beginPath();
+    ctx.arc(1150, 70 + (i * 30), 10, 0, 2 * Math.PI);
     ctx.fill();
     ctx.stroke();
   }
 
+  //drawing walls
+  let shx = Math.floor(Math.random() * 5) - 2;
+  let shy = Math.floor(Math.random() * 5) - 2;
+
+  for (let i = 0; i < game.rects.length; i++) {
+    ctx.fillStyle = "white";
+
+    if ((game.state != 0) && (game.state != 3) && ((game.rects[i].type == game.state) || (game.rects[i].type == game.state - 3)
+    || ((game.rects[i].type == (game.winner + 1)) && (game.winner >= 0)))) {
+      ctx.fillRect(game.rects[i].pos.x + shx, game.rects[i].pos.y + shy, game.rects[i].width, game.rects[i].height);
+    }
+    else {
+      ctx.fillRect(game.rects[i].pos.x, game.rects[i].pos.y, game.rects[i].width, game.rects[i].height);
+    }
+  }
+
+  //drawing balls
   for (let i = 0; i < game.balls.length; i++) {
     ctx.beginPath();
     ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.balls[i].radius, 0, 2 * Math.PI);
-    let lw = ctx.lineWidth;
-    ctx.lineWidth = 2;
 
     if (game.balls[i].type == 1) {
       ctx.fillStyle = "#dc4242";
@@ -458,107 +458,115 @@ function drawGame() {
 
     ctx.fill();
     ctx.stroke();
-
-    if ((i == game.selected) && !game.moving && (game.state == 0)) {
-      ctx.beginPath();
-      ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.balls[i].radius + 10, 0, 2 * Math.PI);
-
-      ctx.moveTo(game.balls[i].pos.x, game.balls[i].pos.y);
-      ctx.lineTo(board.mousePos.x, board.mousePos.y);
-
-      ctx.strokeStyle = "#5a5a5a";
-      ctx.stroke();
-    }
-
-    if ((i == game.forceSelected) && (game.selected != game.forceSelected) && !game.moving && (game.state == 0)) {
-      ctx.beginPath();
-      ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.balls[i].radius + 10, 0, 2 * Math.PI);
-      ctx.strokeStyle = "#81d1ce";
-      ctx.stroke();
-    }
-
-    if ((game.balls[i].type == (game.turn + 1)) && game.moving && (i != game.selected) && (game.state == 0) && game.shoot){
-      let ls = 0;
-      let rs = 1;
-      if (game.lineup == 1) {
-        ls = 1;
-        rs = 0;
-      }
-      let deg1 = 0;
-      let deg2 = 0;
-      if (game.turn == ls) {
-        deg1 = ((360 - game.passDeg) / 180) * Math.PI;
-        deg2 = (game.passDeg / 180) * Math.PI;
-      }
-      else {
-        deg1 = ((180 - game.passDeg) / 180) * Math.PI;
-        deg2 = ((180 + game.passDeg) / 180) * Math.PI;
-      }
-      ctx.beginPath();
-      ctx.moveTo(game.balls[i].pos.x, game.balls[i].pos.y);
-      ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.passDist, deg1, deg2);
-      ctx.lineTo(game.balls[i].pos.x, game.balls[i].pos.y);
-      ctx.strokeStyle = "#81d1ce";
-      ctx.stroke();
-    }
-    ctx.lineWidth = lw;
-    //ctx.drawImage(game.ballPic, game.balls[i].pos.x - (31 / 2), game.balls[i].pos.y - (31 / 2), 31, 31);
   }
 
+  //drawing shoot helper line and select indicator
+  if ((game.selected >= 0) && !game.moving && (game.state == 0)) {
+    let i = game.selected;
+    ctx.beginPath();
+    ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.balls[i].radius + 10, 0, 2 * Math.PI);
+
+    ctx.moveTo(game.balls[i].pos.x, game.balls[i].pos.y);
+    ctx.lineTo(board.mousePos.x, board.mousePos.y);
+
+    ctx.strokeStyle = "#5a5a5a";
+    ctx.stroke();
+  }
+
+  //drawing force selection indicator
+  if ((game.forceSelected >= 0) && (game.selected != game.forceSelected) && !game.moving && (game.state == 0)) {
+    let i = game.forceSelected;
+    ctx.beginPath();
+    ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.balls[i].radius + 10, 0, 2 * Math.PI);
+    ctx.strokeStyle = "#81d1ce";
+    ctx.stroke();
+  }
+
+  //drawing pass ranges
+  if (game.moving && (game.state == 0) && game.shoot) {
+    for (let i = 0; i < game.balls.length; i++) {
+      if ((game.balls[i].type == (game.turn + 1)) && (i != game.selected)){
+        let ls = 0;
+        let rs = 1;
+        if (game.lineup == 1) {
+          ls = 1;
+          rs = 0;
+        }
+        let deg1 = 0;
+        let deg2 = 0;
+        if (game.turn == ls) {
+          deg1 = ((360 - game.passDeg) / 180) * Math.PI;
+          deg2 = (game.passDeg / 180) * Math.PI;
+        }
+        else {
+          deg1 = ((180 - game.passDeg) / 180) * Math.PI;
+          deg2 = ((180 + game.passDeg) / 180) * Math.PI;
+        }
+        ctx.beginPath();
+        ctx.moveTo(game.balls[i].pos.x, game.balls[i].pos.y);
+        ctx.arc(game.balls[i].pos.x, game.balls[i].pos.y, game.passDist, deg1, deg2);
+        ctx.lineTo(game.balls[i].pos.x, game.balls[i].pos.y);
+        ctx.strokeStyle = "#81d1ce";
+        ctx.stroke();
+      }
+    }
+  }
+
+  //drawing on game states
+  ctx.strokeStyle = "#5a5a5a";
   if (game.state == 1) {
     ctx.fillStyle = "#dc4242";
+    ctx.strokeText("Goal!", 530, 200);
     ctx.fillText("Goal!", 530, 200);
   }
   else if (game.state == 2) {
     ctx.fillStyle = "#424ddc";
+    ctx.strokeText("Goal!", 530, 200);
     ctx.fillText("Goal!", 530, 200);
   }
   else if (game.state == 3) {
     ctx.fillStyle = "black";
+    ctx.strokeText("Fault.", 530, 200);
     ctx.fillText("Fault.", 530, 200);
   }
   else if (game.state == 4) {
     ctx.fillStyle = "#dc4242";
+    ctx.strokeText("Red team won.", 435, 200);
     ctx.fillText("Red team won.", 435, 200);
     ctx.fillStyle = "black";
+    ctx.strokeText("Round " + String(game.round), 530, 250);
     ctx.fillText("Round " + String(game.round), 530, 250);
   }
   else if (game.state == 5) {
     ctx.fillStyle = "#424ddc";
+    ctx.strokeText("Blue team won.", 435, 200);
     ctx.fillText("Blue team won.", 435, 200);
     ctx.fillStyle = "black";
+    ctx.strokeText("Round " + String(game.round), 530, 250);
     ctx.fillText("Round " + String(game.round), 530, 250);
   }
   else if (game.state == 6) {
     if (game.winner == 0) {
       ctx.fillStyle = "#dc4242";
+      ctx.strokeText("Red team won.", 435, 200);
       ctx.fillText("Red team won.", 435, 200);
     }
     else {
       ctx.fillStyle = "#424ddc";
+      ctx.strokeText("Blue team won.", 435, 200);
       ctx.fillText("Blue team won.", 435, 200);
     }
   }
 
-  //---------hud---------
-  ctx.beginPath();
-  ctx.rect(100, 505, 1000, 10);
+  //drawing shoot power indicator
   ctx.fillStyle = "gray";
-  ctx.strokeStyle = "gray";
-  ctx.fill();
-  ctx.stroke();
+  ctx.fillRect(100, 505, 1000, 10);
 
-  ctx.beginPath();
-  ctx.rect(100, 505, (1000 / 100) * game.powerPrec, 10);
   ctx.fillStyle = "orange";
-  ctx.strokeStyle = "orange";
-  ctx.fill();
-  ctx.stroke();
+  ctx.fillRect(100, 505, (1000 / 100) * game.powerPrec, 10);
 
-  ctx.beginPath();
-  ctx.rect(100, 505, 1000, 10);
   ctx.strokeStyle = "black";
-  ctx.stroke();
+  ctx.strokeRect(100, 505, 1000, 10);
 }
 
 export { game, updateGame, drawGame };

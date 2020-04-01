@@ -52,6 +52,7 @@ var menu = {
       else if (this.selected >= 0) {
         clearInterval(board.updateInterval);
         clearInterval(board.drawInterval);
+        game.reset();
         game.set(this.selected + 3);
         board.updateInterval = setInterval(updateGame, 1);
         board.drawInterval = setInterval(drawGame, 10);
@@ -148,29 +149,23 @@ function updateMenu() {
 function drawMenu() {
   let ctx = board.context;
   ctx.font = String(menu.textSize) + "px Consolas";
-
+  ctx.lineWidth = 1;
   if (menu.drawRect) {
-    ctx.beginPath();
-    ctx.rect(menu.pos.x, menu.pos.y, (2 * menu.margw) + menu.maxWidth, menu.margt + menu.margb + (menu.options.length * (menu.textSize + menu.margl)) - menu.margl);
     ctx.strokeStyle = "black";
     ctx.fillStyle = "#50b424";
-    ctx.fill();
-    ctx.stroke();
+    ctx.fillRect(menu.pos.x, menu.pos.y, (2 * menu.margw) + menu.maxWidth, menu.margt + menu.margb + (menu.options.length * (menu.textSize + menu.margl)) - menu.margl);
+    ctx.strokeRect(menu.pos.x, menu.pos.y, (2 * menu.margw) + menu.maxWidth, menu.margt + menu.margb + (menu.options.length * (menu.textSize + menu.margl)) - menu.margl);
   }
   else {
-    ctx.beginPath();
-    ctx.rect(0, 0, board.canvas.width, board.canvas.height);
     ctx.fillStyle = "#50b424";
-    ctx.fill();
+    ctx.fillRect(0, 0, board.canvas.width, board.canvas.height);
   }
 
   if (menu.mouseOn >= 0) {
-    ctx.beginPath();
-    ctx.rect(menu.pos.x + menu.margw, menu.pos.y + menu.margt + (menu.mouseOn * (menu.textSize + menu.margl)), menu.maxWidth, menu.textSize);
     ctx.strokeStyle = "#5a5a5a";
     ctx.fillStyle = "#dc4242";
-    ctx.fill();
-    ctx.stroke();
+    ctx.fillRect(menu.pos.x + menu.margw, menu.pos.y + menu.margt + (menu.mouseOn * (menu.textSize + menu.margl)), menu.maxWidth, menu.textSize);
+    ctx.strokeRect(menu.pos.x + menu.margw, menu.pos.y + menu.margt + (menu.mouseOn * (menu.textSize + menu.margl)), menu.maxWidth, menu.textSize);
   }
 
   let corr = menu.textSize * 0.75;
